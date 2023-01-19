@@ -1,26 +1,45 @@
-name: test and deploy
-
-on: 
+on:
+  workflow_dispatch:
+  repository_dispatch:
   push:
-  pull_request:
-  
+
 permissions:
   contents: read
   pages: write
   id-token: write
-  
+
+concurrency:
+  group: "deploy"
+  cancel-in-progress: true
+  #ci-${{ github.ref }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: "run lint tests"
-      run: 'npm run lint -- --format junit -o ./test/results/lint-results.xml'
-    - name: "run unit tests"
-      run: JEST_JUNIT_OUTPUT_NAME=unit-jest-results.xml npm run unit -- --reporters=jest-junit
-    - name: "run npm build"
-      run: NODE_ENV=production npm run build
-    - name: "deploy to gh pages"
-      run: |
-        git config --global user.email $(git log --pretty=format:"%ae" -n1)
-        git config --global user.name $(git log --pretty=format:"%an" -n1)
-        npm run deploy -- -e https://redman13.github.io/scratch-editor
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup GitHub Pages
+      id: pages
+      uses: actions/configure-pages@v1
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 14.x
+    - name: Install dependencies and build site
+      run: npm i -g pnpm && pnpm up && pnpm i --shamefully-hoist && webpack --bail
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: ./build/
+
+  deploy:
+    environment:
+      name: github-pages
+      url: 'https://redman13.github.io/scratch-editor'
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v1
