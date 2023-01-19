@@ -6,19 +6,15 @@ on:
   
 jobs:
   build:
-    working_directory: ~/repo
-    environment:
-      NODE_ENV: production
     runs-on: ubuntu-latest
     steps:
-    run:
-      - name: "run lint tests"
+    - name: "run lint tests"
       run: 'npm run lint -- --format junit -o ./test/results/lint-results.xml'
-      - name: "run unit tests"
+    - name: "run unit tests"
       run: JEST_JUNIT_OUTPUT_NAME=unit-jest-results.xml npm run unit -- --reporters=jest-junit
-      - name: "run npm build"
+    - name: "run npm build"
       run: NODE_ENV=production npm run build
-      - name: "deploy to gh pages"
+    - name: "deploy to gh pages"
       run: |
         git config --global user.email $(git log --pretty=format:"%ae" -n1)
         git config --global user.name $(git log --pretty=format:"%an" -n1)
